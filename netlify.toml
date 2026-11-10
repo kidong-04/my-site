@@ -1,0 +1,28 @@
+# Netlify 배포 설정
+# 앱 파일만 dist/ 폴더로 복사해서 배포한다.
+# → 결과물/(BRD·PRD), 스크린샷, .claude/ 등은 사이트 주소로 열리지 않음
+# 앱에 새 파일을 추가하면 아래 cp 목록에도 넣어야 사이트에 올라간다.
+
+[build]
+  command = "rm -rf dist && mkdir dist && cp -r index.html app.js data.js style.css sw.js manifest.json icons dist/"
+  publish = "dist"
+
+# 서비스 워커·manifest는 항상 최신 파일을 받도록 (옛 화면이 남지 않게)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "no-cache"
+
+# 기본 보안 헤더
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
