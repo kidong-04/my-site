@@ -9,9 +9,17 @@
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
-      if (raw) { var s = JSON.parse(raw); if (s && s.members && s.records) return s; }
+      if (raw) { var s = JSON.parse(raw); if (s && s.members && s.records) return syncProfiles(s); }
     } catch (e) {}
     return clone(SAMPLE_DATA);
+  }
+  // data.js에서 호칭·이모지·색을 바꾸면 저장된 데이터에도 반영 (기록·목표는 그대로 유지)
+  function syncProfiles(s) {
+    s.members.forEach(function (m) {
+      var src = SAMPLE_DATA.members.filter(function (x) { return x.id === m.id; })[0];
+      if (src) { m.name = src.name; m.emoji = src.emoji; m.color = src.color; }
+    });
+    return s;
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); }

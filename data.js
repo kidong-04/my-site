@@ -1,5 +1,6 @@
 // ★ 다음 단계에서 이 파일만 고치면 내용이 바뀝니다. (예시 데이터)
-// 저장된 기록이 있으면 브라우저 저장본이 우선합니다. 바꾼 뒤에는 [순위·공유] 탭의 "예시로 초기화"를 누르세요.
+// 구성원의 name·emoji·color는 고치면 바로 반영됩니다(기록·목표는 그대로).
+// 그 밖의 내용(goals·records·cheers)은 브라우저 저장본이 우선합니다. 반영하려면 [순위·공유] 탭의 "예시로 초기화"를 누르세요.
 
 // n일 전 날짜 (YYYY-MM-DD) — 예시 기록이 항상 이번 주 근처에 오도록
 function daysAgo(n) {
@@ -20,7 +21,7 @@ const SAMPLE_DATA = {
     { id: "dad", name: "아빠", emoji: "👨", color: "#3b82f6", goals: { exercise: 3, reading: 2, study: 3 } },
     { id: "mom", name: "엄마", emoji: "👩", color: "#ec4899", goals: { exercise: 4, reading: 3, study: 2 } },
     { id: "son", name: "넘버원", emoji: "🧒", color: "#10b981", goals: { exercise: 3, reading: 4, study: 6 } },
-    { id: "daughter", name: "팔방미인", emoji: "👧", color: "#f59e0b", goals: { exercise: 4, reading: 3, study: 4 } },
+    { id: "daughter", name: "옥토", emoji: "👧", color: "#f59e0b", goals: { exercise: 4, reading: 3, study: 4 } },
   ],
   records: [
     { member: "dad", cat: "exercise", value: 1, memo: "아침 조깅 30분", date: daysAgo(0) },
