@@ -1,0 +1,39 @@
+# GitHub Pages 배포
+# main에 푸시할 때마다 앱 파일만 골라 사이트로 배포한다.
+# (결과물/·스크린샷 등은 사이트 주소로 올라가지 않음)
+# 앱에 새 파일을 추가하면 아래 cp 목록에도 넣어야 한다.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect app files
+        run: |
+          mkdir dist
+          cp -r index.html app.js data.js style.css sw.js manifest.json icons dist/
+          touch dist/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
