@@ -18,7 +18,6 @@ desktop.ini
 *.log
 node_modules/
 
-# Netlify 배포용으로 만들어지는 폴더
+# 배포용으로 만들어지는 폴더
 dist/
-.netlify/
 .vercel/
