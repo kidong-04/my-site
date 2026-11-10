@@ -1,0 +1,19 @@
+# 비밀 값 (API 키·접속 정보) — 절대 올리지 않음
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets*.json
+supabase/.temp/
+
+# Claude Code 개인 설정
+.claude/settings.local.json
+
+# 운영체제·편집기 임시 파일
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+*.log
+node_modules/

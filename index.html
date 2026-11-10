@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <title>우리가족 자기계발 트래커</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="가족도장판">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Jua&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <p id="weekLabel" class="sub"></p>
+    <h1>우리가족 자기계발</h1>
+  </header>
+
+  <main>
+    <!-- 홈 -->
+    <section id="tab-home" class="tab active">
+      <div id="installNudge" class="nudge" hidden>
+        <span>📲 홈 화면에 추가하면 앱처럼 바로 열 수 있어요</span>
+        <button type="button" id="nudgeGo" class="small">방법 보기</button>
+        <button type="button" id="nudgeClose" class="small nudge-x" aria-label="안내 닫기">✕</button>
+      </div>
+      <div class="hero">
+        <div class="hero-num">
+          <b id="familyPct">0%</b>
+          <span>가족 달성률</span>
+          <small id="stampCount"></small>
+        </div>
+        <div class="hero-side">
+          <div class="mvp" id="mvpBox"></div>
+          <p id="cheer" class="cheer"></p>
+        </div>
+      </div>
+      <h3 class="section-title">이번 주 도장판</h3>
+      <div id="memberCards"></div>
+    </section>
+
+    <!-- 기록 -->
+    <section id="tab-log" class="tab">
+      <form id="logForm" class="card">
+        <h2>오늘 기록하기</h2>
+        <label>누가 했나요?</label>
+        <div id="memberPick" class="chips"></div>
+        <label>무엇을 했나요?</label>
+        <div id="catPick" class="chips"></div>
+        <div class="row">
+          <div>
+            <label for="valueInput">양 (<span id="unitLabel">회</span>)</label>
+            <input id="valueInput" type="number" min="0.5" step="0.5" value="1" inputmode="decimal" required>
+          </div>
+          <div>
+            <label for="dateInput">날짜</label>
+            <input id="dateInput" type="date" required>
+          </div>
+        </div>
+        <label for="memoInput">메모 (선택)</label>
+        <input id="memoInput" type="text" maxlength="40" placeholder="예: 아침 조깅 30분">
+        <button type="submit" class="primary">기록 저장</button>
+      </form>
+      <div class="card">
+        <h2>최근 기록</h2>
+        <ul id="recentList" class="list"></ul>
+      </div>
+    </section>
+
+    <!-- 통계 -->
+    <section id="tab-stats" class="tab">
+      <div class="card">
+        <div class="wk-nav">
+          <button type="button" id="wkPrev" aria-label="이전 주">‹</button>
+          <div class="wk-title"><b id="wkTitle"></b><small id="wkRange"></small></div>
+          <button type="button" id="wkNext" aria-label="다음 주">›</button>
+        </div>
+        <div class="wk-sum">
+          <div class="stat"><span>가족 달성률</span><b id="wkFam"></b></div>
+          <div class="stat"><span>기록 수</span><b id="wkCount"></b></div>
+          <div class="stat"><span>MVP</span><b id="wkMvp"></b></div>
+        </div>
+        <ul id="wkMembers" class="list wk-members"></ul>
+        <p class="hint">지난 주 달성률은 지금 설정된 목표를 기준으로 계산해요.</p>
+      </div>
+      <div class="card">
+        <h2>📈 최근 8주 가족 달성률</h2>
+        <div id="trend" class="trend"></div>
+        <p class="hint">막대를 누르면 그 주의 기록을 볼 수 있어요.</p>
+      </div>
+      <div class="card">
+        <h2>🔥 연속 기록</h2>
+        <ul id="streakList" class="list"></ul>
+      </div>
+      <div class="card">
+        <h2>📊 지금까지 누적</h2>
+        <div id="totals" class="totals"></div>
+      </div>
+    </section>
+
+    <!-- 순위·공유 -->
+    <section id="tab-rank" class="tab">
+      <div class="card">
+        <h2>🏆 이번 주 순위</h2>
+        <ol id="rankList" class="rank"></ol>
+      </div>
+      <div class="card">
+        <h2>📤 가족과 공유</h2>
+        <button id="copyBtn" class="primary">단톡방용 요약 복사</button>
+        <textarea id="summaryBox" readonly hidden></textarea>
+        <div class="row2">
+          <button id="exportBtn">내보내기(파일)</button>
+          <button id="importBtn">가져오기(파일)</button>
+        </div>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <p class="hint">기록은 이 기기에만 저장돼요. 내보낸 파일을 가족에게 보내면, 받은 사람이 "가져오기"로 합칠 수 있어요.</p>
+        <button id="resetBtn" class="ghost">예시로 초기화</button>
+      </div>
+      <div class="card" id="installCard">
+        <h2>📲 홈 화면에 추가</h2>
+        <p class="lead">아이콘을 눌러 앱처럼 바로 열 수 있어요. 기록은 지금처럼 이 휴대폰에 저장돼요.</p>
+        <p id="kakaoWarn" class="warn" hidden>카카오톡 안에서 열려 있어요. 오른쪽 아래 <b>⋮</b> 또는 공유 버튼 → <b>다른 브라우저로 열기</b>를 누른 뒤 아래 순서대로 해주세요.</p>
+        <button type="button" id="installBtn" class="primary" hidden>홈 화면에 추가</button>
+        <details id="howIos" class="how">
+          <summary>아이폰 (Safari)</summary>
+          <ol>
+            <li>화면 아래 <b>공유 버튼</b>(네모에 위쪽 화살표)을 누릅니다.</li>
+            <li>목록을 내려 <b>홈 화면에 추가</b>를 누릅니다.</li>
+            <li>오른쪽 위 <b>추가</b>를 누르면 끝!</li>
+          </ol>
+        </details>
+        <details id="howAndroid" class="how">
+          <summary>갤럭시 등 안드로이드 (Chrome·삼성 인터넷)</summary>
+          <ol>
+            <li>오른쪽 위(삼성 인터넷은 아래) <b>⋮ 또는 ≡ 메뉴</b>를 누릅니다.</li>
+            <li><b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누릅니다.</li>
+            <li><b>설치</b>(또는 추가)를 누르면 끝!</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- 목표 수정 -->
+  <dialog id="goalDialog">
+    <form method="dialog" id="goalForm">
+      <h2 id="goalTitle">주간 목표</h2>
+      <div id="goalFields"></div>
+      <div class="row2">
+        <button value="cancel">취소</button>
+        <button value="ok" class="primary" id="goalSave">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <nav class="tabbar">
+    <button data-tab="home" class="active"><span>🏠</span>이번 주</button>
+    <button data-tab="log"><span>✍️</span>기록</button>
+    <button data-tab="stats"><span>📊</span>통계</button>
+    <button data-tab="rank"><span>🏆</span>순위·공유</button>
+  </nav>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
