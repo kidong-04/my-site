@@ -137,10 +137,11 @@
 | 테이블 | `members`(id·name·emoji·color·goal_exercise·goal_reading·goal_study·updated_at) / `records`(id·member_id·category·value·memo·date·created_at) |
 | 값 검사 | category는 exercise·reading·study만, value는 0.5 단위 양수, memo 40자 |
 | 접근 규칙(RLS) | **실습용 공개**: 공개 키로 누구나 조회 가능 · 기록 추가·삭제 가능 · 구성원은 **목표 3칸만** 수정 가능(호칭·이모지·색 변경과 구성원 추가·삭제는 대시보드에서만) |
-| 앱 코드 | `cloud.js` 신규(라이브러리 없이 REST API 호출, 공개 키만 사용) / `app.js`의 기록 저장·삭제·목표 수정·가져오기를 서버 저장으로 변경 |
+| 앱 코드 | `cloud.js` 신규(공개 publishable 키만 사용, secret 키 없음) / `app.js`의 기록 저장·삭제·목표 수정·가져오기를 서버 저장으로 변경 |
+| 라이브러리 | **supabase-js 2.45.4**를 jsDelivr CDN `<script>`로 불러옴(빌드 없음). 버전 고정 + 무결성(SRI) 검사. 서비스 워커가 한 번 받아 두어 오프라인에서도 화면이 열림 (2026. 11. 11. REST 직접 호출 → supabase-js로 교체) |
 | 화면 변화 | 앱을 열 때·앱으로 돌아올 때 최신 가족 기록 자동 수신. [순위·공유]의 "예시로 초기화" → **"가족 기록 새로 불러오기"**(가족 전체 기록을 지우는 위험 제거). "가져오기(파일)"는 파일 기록을 서버로 업로드 |
 | 오프라인 | `localStorage`는 마지막으로 받은 화면 보관용. 인터넷이 없으면 화면은 보이지만 저장·삭제는 안 됨(안내 문구 표시). 서버 연결 전 기기에만 있던 기록은 `familyTracker.v1.backup`에 한 번 보관 |
-| 배포 | `pages.yml`·`vercel.json` 배포 목록과 `sw.js` 캐시 목록에 `cloud.js` 추가(캐시 v2) |
+| 배포 | `pages.yml`·`vercel.json` 배포 목록과 `sw.js` 캐시 목록에 `cloud.js` 추가(캐시 v3) |
 | 확인 | 내 PC(localhost:8131)에서 불러오기·기록 저장·목표 수정·삭제가 Supabase에 반영됨, 이름 변경 시도는 거부됨(2026. 11. 11.) |
 
 #### 의견 남기기 게시판 — 2026. 11. 11. 추가

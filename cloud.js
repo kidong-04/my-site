@@ -1,23 +1,23 @@
 // Supabase 연결 (PRD Phase 2 — 실습용)
-// 별도 라이브러리 없이 Supabase REST API(PostgREST)를 fetch로 부른다.
-// 아래 키는 브라우저에 넣어도 되는 "공개(publishable) 키"다. service_role·secret 키는 절대 넣지 않는다.
-// 무엇을 읽고 쓸 수 있는지는 Supabase의 RLS 정책이 정한다.
+// supabase-js를 CDN(index.html의 <script>)으로 불러와 쓴다. 빌드 도구 없이 파일만으로 동작.
+// 아래 키는 브라우저에 넣어도 되는 "공개(publishable) 키"다. secret·service_role 키는 절대 넣지 않는다.
+// 무엇을 읽고 쓸 수 있는지는 Supabase의 RLS 정책과 권한이 정한다.
 
 var CLOUD = (function () {
-  var URL_BASE = "https://ntqghsxqywutjcfpgyjl.supabase.co/rest/v1/";
-  var KEY = "sb_publishable_8IIIWdesafFrkuCzD5bKZg_-OKKqvoE";
+  var SUPABASE_URL = "https://ntqghsxqywutjcfpgyjl.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_8IIIWdesafFrkuCzD5bKZg_-OKKqvoE";
 
-  function req(path, opt) {
-    opt = opt || {};
-    var headers = { apikey: KEY, "Content-Type": "application/json" };
-    if (opt.prefer) headers.Prefer = opt.prefer;
-    return fetch(URL_BASE + path, {
-      method: opt.method || "GET",
-      headers: headers,
-      body: opt.body ? JSON.stringify(opt.body) : undefined,
-    }).then(function (res) {
-      if (!res.ok) return res.text().then(function (t) { throw new Error(res.status + " " + t); });
-      return res.status === 204 ? null : res.text().then(function (t) { return t ? JSON.parse(t) : null; });
+  // 로그인 기능이 아직 없으므로 세션 저장·자동 갱신은 끈다
+  var db = window.supabase && window.supabase.createClient
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+    : null;
+
+  // supabase-js 결과 { data, error } → 성공이면 data, 실패면 오류로 넘김
+  function run(build) {
+    if (!db) return Promise.reject(new Error("supabase-js를 불러오지 못했어요(인터넷 연결 확인)"));
+    return Promise.resolve(build(db)).then(function (res) {
+      if (res.error) throw res.error;
+      return res.data;
     });
   }
 
@@ -33,12 +33,14 @@ var CLOUD = (function () {
     return { member_id: r.member, category: r.cat, value: r.value, memo: (r.memo || "").slice(0, 40), date: r.date };
   }
 
+  var FB_COLS = "id,nickname,category,message,created_at";
+
   return {
     // 구성원 + 기록 전체 불러오기
     loadAll: function () {
       return Promise.all([
-        req("members?select=*&order=id"),
-        req("records?select=*&order=date.asc,id.asc"),
+        run(function (d) { return d.from("members").select("*").order("id"); }),
+        run(function (d) { return d.from("records").select("*").order("date").order("id"); }),
       ]).then(function (res) {
         // 구성원 순서는 data.js 순서(아빠·엄마·…)를 따른다
         var order = SAMPLE_DATA.members.map(function (m) { return m.id; });
@@ -51,23 +53,31 @@ var CLOUD = (function () {
     },
     // 기록 추가 (여러 건 가능) → 저장된 기록(id 포함)을 돌려줌
     addRecords: function (list) {
-      return req("records?select=*", { method: "POST", body: list.map(toRow), prefer: "return=representation" })
+      return run(function (d) { return d.from("records").insert(list.map(toRow)).select(); })
         .then(function (rows) { return rows.map(toRecord); });
     },
     deleteRecord: function (id) {
-      return req("records?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+      return run(function (d) { return d.from("records").delete().eq("id", id); });
+    },
+    saveGoals: function (memberId, goals) {
+      return run(function (d) {
+        return d.from("members")
+          .update({ goal_exercise: goals.exercise, goal_reading: goals.reading, goal_study: goals.study })
+          .eq("id", memberId);
+      });
     },
     // 의견 남기기 게시판 — 숨김 처리(hidden)된 의견은 RLS가 걸러서 내려주지 않는다
     listFeedback: function () {
-      return req("feedback?select=id,nickname,category,message,created_at&order=created_at.desc&limit=50");
+      return run(function (d) {
+        return d.from("feedback").select(FB_COLS).order("created_at", { ascending: false }).limit(50);
+      });
     },
     addFeedback: function (f) {
-      return req("feedback?select=id,nickname,category,message,created_at", { method: "POST", body: f, prefer: "return=representation" })
-        .then(function (rows) { return rows[0]; });
-    },
-    saveGoals: function (memberId, goals) {
-      return req("members?id=eq." + encodeURIComponent(memberId), { method: "PATCH",
-        body: { goal_exercise: goals.exercise, goal_reading: goals.reading, goal_study: goals.study } });
+      return run(function (d) {
+        return d.from("feedback")
+          .insert({ nickname: f.nickname, category: f.category, message: f.message })
+          .select(FB_COLS).single();
+      });
     },
   };
 })();
