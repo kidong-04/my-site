@@ -29,7 +29,7 @@ jobs:
       - name: Collect app files
         run: |
           mkdir dist
-          cp -r index.html app.js data.js style.css sw.js manifest.json icons dist/
+          cp -r index.html app.js data.js cloud.js style.css sw.js manifest.json icons dist/
           touch dist/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

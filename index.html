@@ -120,12 +120,12 @@
           <button id="importBtn">가져오기(파일)</button>
         </div>
         <input id="importFile" type="file" accept="application/json,.json" hidden>
-        <p class="hint">기록은 이 기기에만 저장돼요. 내보낸 파일을 가족에게 보내면, 받은 사람이 "가져오기"로 합칠 수 있어요.</p>
-        <button id="resetBtn" class="ghost">예시로 초기화</button>
+        <p class="hint">기록은 가족 서버에 저장돼 모든 가족 휴대폰에 함께 보여요. "가져오기"로 예전에 내보낸 파일의 기록을 서버로 올릴 수 있어요(겹치는 기록은 빼고).</p>
+        <button id="resetBtn" class="ghost">가족 기록 새로 불러오기</button>
       </div>
       <div class="card" id="installCard">
         <h2>📲 홈 화면에 추가</h2>
-        <p class="lead">아이콘을 눌러 앱처럼 바로 열 수 있어요. 기록은 지금처럼 이 휴대폰에 저장돼요.</p>
+        <p class="lead">아이콘을 눌러 앱처럼 바로 열 수 있어요. 기록은 가족 서버에 저장돼요.</p>
         <p id="kakaoWarn" class="warn" hidden>카카오톡 안에서 열려 있어요. 오른쪽 아래 <b>⋮</b> 또는 공유 버튼 → <b>다른 브라우저로 열기</b>를 누른 뒤 아래 순서대로 해주세요.</p>
         <button type="button" id="installBtn" class="primary" hidden>홈 화면에 추가</button>
         <details id="howIos" class="how">
@@ -144,6 +144,26 @@
             <li><b>설치</b>(또는 추가)를 누르면 끝!</li>
           </ol>
         </details>
+      </div>
+    </section>
+    <!-- 의견 남기기 -->
+    <section id="tab-feedback" class="tab">
+      <form id="fbForm" class="card">
+        <h2>💬 의견 남기기</h2>
+        <p class="lead">앱을 쓰면서 좋았던 점, 불편한 점, 바라는 기능을 자유롭게 남겨 주세요.</p>
+        <label>어떤 의견인가요?</label>
+        <div id="fbKind" class="chips"></div>
+        <label for="fbName">이름 (선택)</label>
+        <input id="fbName" type="text" maxlength="20" placeholder="비워 두면 '익명'으로 보여요" autocomplete="off">
+        <label for="fbMsg">내용</label>
+        <textarea id="fbMsg" class="fb-msg" maxlength="500" required placeholder="예: 기록할 때 어제 날짜를 한 번에 고를 수 있으면 좋겠어요"></textarea>
+        <p class="fb-count"><span id="fbLen">0</span> / 500자</p>
+        <button type="submit" class="primary">의견 보내기</button>
+        <p class="hint">남긴 의견은 이 사이트를 방문한 누구에게나 보여요. 이름·연락처 같은 개인정보는 적지 말아 주세요.</p>
+      </form>
+      <div class="card">
+        <h2>모두의 의견</h2>
+        <ul id="fbList" class="list fb-list"></ul>
       </div>
     </section>
   </main>
@@ -167,9 +187,11 @@
     <button data-tab="log"><span>✍️</span>기록</button>
     <button data-tab="stats"><span>📊</span>통계</button>
     <button data-tab="rank"><span>🏆</span>순위·공유</button>
+    <button data-tab="feedback"><span>💬</span>의견</button>
   </nav>
 
   <script src="data.js"></script>
+  <script src="cloud.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -308,3 +308,12 @@ dialog .row2 button.primary { margin-top: 0; min-height: 44px; }
   .slot { width: 22px; height: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ===== 의견 남기기 ===== */
+textarea.fb-msg { min-height: 110px; margin-top: 0; font-size: .92rem; resize: vertical; }
+.fb-count { margin: 4px 0 0; text-align: right; font-size: .78rem; color: var(--ink-soft); }
+.fb-list li { display: block; }
+.fb-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fb-tag { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--paper); border: 1px solid var(--line); }
+.fb-head small { margin-left: auto; color: var(--ink-soft); font-size: .78rem; }
+.fb-body { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }

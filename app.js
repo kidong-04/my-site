@@ -21,10 +21,32 @@
     });
     return s;
   }
+  // localStorage는 이제 "마지막으로 받은 내용" 보관용 (인터넷이 안 될 때 화면을 보여주기 위해)
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); }
-    catch (e) { toast("이 브라우저에서는 저장이 안 돼요"); }
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
   }
+
+  // ---------- Supabase 동기화 (PRD Phase 2) ----------
+  var syncing = false;
+  function sync(quiet) {
+    if (syncing) return Promise.resolve();
+    syncing = true;
+    return CLOUD.loadAll().then(function (d) {
+      if (!d.members.length) throw new Error("구성원 없음");
+      // 서버 연결 전에 이 기기에만 저장돼 있던 기록(id 없음)은 덮어쓰기 전에 따로 보관
+      var localOnly = state.records.filter(function (r) { return r.id == null; });
+      if (localOnly.length) {
+        try { if (!localStorage.getItem(KEY + ".backup")) localStorage.setItem(KEY + ".backup", JSON.stringify(state)); } catch (e) {}
+      }
+      state.members = d.members; state.records = d.records;
+      if (!member(pick.member)) pick.member = state.members[0].id;
+      save(); render();
+      if (!quiet) toast("가족 기록을 불러왔어요");
+    }).catch(function () {
+      toast("인터넷 연결을 확인해 주세요 (저장된 화면을 보여줘요)");
+    }).then(function () { syncing = false; });
+  }
+  function offline() { toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요"); }
 
   // ---------- 날짜 / 주간 ----------
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -256,6 +278,7 @@
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
     window.scrollTo(0, 0);
+    if (name === "feedback") loadFeedback(); // 탭을 열 때마다 최신 의견
     // 방금 찍은 도장은 '이번 주' 탭이 보일 때 한 번만 찍히는 동작을 보여준다
     if (name === "home" && lastAdd) {
       var f = document.querySelector(".slot.fresh");
@@ -274,7 +297,14 @@
     if (b.dataset.member) { pick.member = b.dataset.member; renderLog(); }
     else if (b.dataset.cat) { pick.cat = b.dataset.cat; renderLog(); }
     else if (b.dataset.del !== undefined) {
-      if (confirm("이 기록을 삭제할까요?")) { state.records.splice(Number(b.dataset.del), 1); save(); render(); toast("삭제했어요"); }
+      if (!confirm("이 기록을 삭제할까요?")) return;
+      var rec = state.records[Number(b.dataset.del)];
+      if (!rec || rec.id == null) { toast("가족 기록을 다시 불러온 뒤 삭제해 주세요"); sync(true); return; }
+      b.disabled = true;
+      CLOUD.deleteRecord(rec.id).then(function () {
+        state.records = state.records.filter(function (r) { return r.id !== rec.id; });
+        save(); render(); toast("삭제했어요");
+      }, function () { b.disabled = false; offline(); });
     }
   });
 
@@ -283,12 +313,19 @@
     var v = parseFloat(document.getElementById("valueInput").value);
     var date = document.getElementById("dateInput").value;
     if (!(v > 0) || !date) { toast("양과 날짜를 확인해 주세요"); return; }
-    state.records.push({ member: pick.member, cat: pick.cat, value: v, memo: document.getElementById("memoInput").value.trim(), date: date });
-    lastAdd = inWeek(date) ? { member: pick.member, cat: pick.cat } : null;
-    save(); render();
-    document.getElementById("memoInput").value = "";
-    document.getElementById("valueInput").value = 1;
-    toast(lastAdd ? "기록했어요. 도장 꾹! 👏" : "기록했어요");
+    if (v * 2 !== Math.floor(v * 2)) { toast("양은 0.5 단위로 적어 주세요"); return; }
+    var btn = e.target.querySelector("[type=submit]"), who = pick.member, what = pick.cat;
+    btn.disabled = true;
+    CLOUD.addRecords([{ member: who, cat: what, value: v, memo: document.getElementById("memoInput").value.trim(), date: date }])
+      .then(function (saved) {
+        state.records = state.records.concat(saved);
+        lastAdd = inWeek(date) ? { member: who, cat: what } : null;
+        save(); render();
+        document.getElementById("memoInput").value = "";
+        document.getElementById("valueInput").value = 1;
+        toast(lastAdd ? "기록했어요. 도장 꾹! 👏" : "기록했어요");
+      }, offline)
+      .then(function () { btn.disabled = false; });
   });
 
   // 목표 수정
@@ -305,8 +342,11 @@
   });
   document.getElementById("goalForm").addEventListener("submit", function (e) {
     if (e.submitter && e.submitter.value === "ok" && goalFor) {
-      document.querySelectorAll("[data-gcat]").forEach(function (i) { goalFor.goals[i.dataset.gcat] = Math.max(0, parseFloat(i.value) || 0); });
-      save(); render(); toast("목표를 저장했어요");
+      var g = {}, who = goalFor;
+      document.querySelectorAll("[data-gcat]").forEach(function (i) { g[i.dataset.gcat] = Math.max(0, parseFloat(i.value) || 0); });
+      CLOUD.saveGoals(who.id, g).then(function () {
+        who.goals = g; save(); render(); toast("목표를 저장했어요");
+      }, offline);
     }
   });
 
@@ -335,19 +375,68 @@
         if (!d.members || !d.records) throw 0;
         var seen = {};
         state.records.forEach(function (r) { seen[[r.member, r.cat, r.value, r.date, r.memo].join("|")] = 1; });
-        var added = 0;
+        var add = [];
         d.records.forEach(function (r) {
           var k = [r.member, r.cat, r.value, r.date, r.memo].join("|");
-          if (!seen[k] && member(r.member) && cat(r.cat)) { state.records.push(r); seen[k] = 1; added++; }
+          var v = Number(r.value);
+          if (!seen[k] && member(r.member) && cat(r.cat) && v > 0 && v * 2 === Math.floor(v * 2) && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) {
+            add.push({ member: r.member, cat: r.cat, value: v, memo: r.memo || "", date: r.date }); seen[k] = 1;
+          }
         });
-        save(); render(); toast("기록 " + added + "건을 합쳤어요");
+        if (!add.length) { toast("새로 합칠 기록이 없어요"); e.target.value = ""; return; }
+        // 이 기기에 있던 기록·파일을 가족 서버로 한 번에 올림 (PRD 2-2-5)
+        CLOUD.addRecords(add).then(function (saved) {
+          state.records = state.records.concat(saved); save(); render(); toast("기록 " + saved.length + "건을 가족 서버에 올렸어요");
+        }, offline);
       } catch (err) { toast("올바른 파일이 아니에요"); }
       e.target.value = "";
     };
     rd.readAsText(f);
   });
   document.getElementById("resetBtn").addEventListener("click", function () {
-    if (confirm("모든 기록과 목표를 예시 데이터로 되돌릴까요?")) { state = clone(SAMPLE_DATA); pick.member = state.members[0].id; save(); render(); toast("예시로 초기화했어요"); }
+    sync(); // 가족 서버에서 최신 기록 다시 받기 (예전 "예시로 초기화"는 가족 전체 기록을 지우므로 없앰)
+  });
+  // 다른 가족이 기록했을 수 있으니, 앱으로 돌아올 때마다 최신 기록을 받는다
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) sync(true); });
+
+  // ---------- 의견 남기기 ----------
+  var FB_KINDS = ["제안", "불편", "칭찬", "기타"];
+  var fbKind = FB_KINDS[0], fbItems = null, fbError = false;
+  function renderFeedback() {
+    document.getElementById("fbKind").innerHTML = FB_KINDS.map(function (k) {
+      return '<button type="button" class="chip' + (fbKind === k ? " on" : "") + '" data-kind="' + k + '">' + k + "</button>";
+    }).join("");
+    var list = document.getElementById("fbList");
+    if (fbError) { list.innerHTML = '<li class="empty">의견을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요</li>'; return; }
+    if (!fbItems) { list.innerHTML = '<li class="empty">불러오는 중…</li>'; return; }
+    list.innerHTML = fbItems.length ? fbItems.map(function (f) {
+      var d = new Date(f.created_at);
+      return '<li><div class="fb-head"><span class="fb-tag">' + esc(f.category) + "</span><b>" + esc(f.nickname || "익명") +
+        "</b><small>" + (d.getMonth() + 1) + "/" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) +
+        '</small></div><p class="fb-body">' + esc(f.message) + "</p></li>";
+    }).join("") : '<li class="empty">첫 의견을 남겨 주세요 ✍️</li>';
+  }
+  function loadFeedback() {
+    return CLOUD.listFeedback().then(function (rows) { fbItems = rows; fbError = false; }, function () { fbError = !fbItems; })
+      .then(renderFeedback);
+  }
+  document.getElementById("fbKind").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-kind]"); if (b) { fbKind = b.dataset.kind; renderFeedback(); }
+  });
+  document.getElementById("fbMsg").addEventListener("input", function (e) {
+    document.getElementById("fbLen").textContent = e.target.value.length;
+  });
+  document.getElementById("fbForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var msg = document.getElementById("fbMsg").value.trim(), name = document.getElementById("fbName").value.trim();
+    if (msg.length < 2) { toast("내용을 두 글자 이상 적어 주세요"); return; }
+    var btn = e.target.querySelector("[type=submit]"); btn.disabled = true;
+    CLOUD.addFeedback({ nickname: name || "익명", category: fbKind, message: msg }).then(function (row) {
+      fbItems = [row].concat(fbItems || []); fbError = false; renderFeedback();
+      document.getElementById("fbMsg").value = ""; document.getElementById("fbLen").textContent = "0";
+      toast("의견을 남겼어요. 고마워요! 🙏");
+    }, function () { toast("보내지 못했어요. 인터넷 연결을 확인해 주세요"); })
+      .then(function () { btn.disabled = false; });
   });
 
   // ---------- 홈 화면에 추가 (PRD 1-2) ----------
@@ -394,5 +483,7 @@
 
   document.getElementById("dateInput").value = iso(new Date());
   setupInstall();
-  render();
+  renderFeedback();
+  render();       // 먼저 이 기기에 저장된 화면을 바로 보여주고
+  sync(true);     // 가족 서버에서 최신 기록을 받아 다시 그린다
 })();
