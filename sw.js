@@ -1,6 +1,6 @@
 // 홈 화면 앱용 서비스 워커
 // 네트워크 우선: 인터넷이 되면 항상 최신 파일을 쓰고, 안 될 때만 저장해 둔 파일로 연다.
-var CACHE = "family-tracker-v3";
+var CACHE = "family-tracker-v4";
 // supabase-js: 버전이 고정된 파일이라 내용이 바뀌지 않음 → 한 번 받아 두고 그대로 사용(오프라인에서도 화면이 열리게)
 var SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
 var SHELL = ["./", "index.html", "style.css", "app.js", "data.js", "cloud.js", "manifest.json",

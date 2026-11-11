@@ -161,7 +161,7 @@ button.primary {
 button.primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--stamp)); }
 button.ghost { width: 100%; margin-top: 10px; color: var(--ink-soft); border-style: dashed; background: transparent; font-weight: 500; }
 .small { padding: 4px 10px; min-height: 34px; font-size: .78rem; font-weight: 500; color: var(--ink-soft); border-radius: 8px; }
-input[type=number], input[type=date], input[type=text], textarea {
+input[type=number], input[type=date], input[type=text], input[type=email], input[type=password], textarea {
   width: 100%; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: var(--r-ctl);
   background: var(--paper); color: var(--ink); min-height: 48px;
 }
@@ -317,3 +317,16 @@ textarea.fb-msg { min-height: 110px; margin-top: 0; font-size: .92rem; resize: v
 .fb-tag { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--paper); border: 1px solid var(--line); }
 .fb-head small { margin-left: auto; color: var(--ink-soft); font-size: .78rem; }
 .fb-body { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+
+/* ===== 로그인 ===== */
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.authbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.auth-who { font-size: .78rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
+.authbar .small { color: var(--ink); font-weight: 700; flex: none; }
+.auth-msg { min-height: 1.2em; margin: 10px 0 0; font-size: .85rem; color: var(--stamp); line-height: 1.5; }
+.auth-msg.ok { color: var(--ink); }
+.who-card .lead { margin-bottom: 12px; }
+.me-tag { font-size: .7rem; font-weight: 700; padding: 1px 7px; margin-left: 4px; border-radius: 99px; background: var(--ink); color: var(--on-ink); vertical-align: middle; }
+.auth-switch { margin: 14px 0 0; text-align: center; font-size: .88rem; color: var(--ink-soft); }
+.linkbtn { border: 0; background: none; padding: 4px 2px; min-height: 0; color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.auth-close { width: 100%; margin-top: 8px; }

@@ -19,7 +19,13 @@
 </head>
 <body>
   <header class="top">
-    <p id="weekLabel" class="sub"></p>
+    <div class="top-row">
+      <p id="weekLabel" class="sub"></p>
+      <div id="authBar" class="authbar">
+        <span id="authWho" class="auth-who"></span>
+        <button type="button" id="authBtn" class="small">로그인</button>
+      </div>
+    </div>
     <h1>우리가족 자기계발</h1>
   </header>
 
@@ -41,6 +47,11 @@
           <div class="mvp" id="mvpBox"></div>
           <p id="cheer" class="cheer"></p>
         </div>
+      </div>
+      <div id="whoCard" class="card who-card" hidden>
+        <h2>🙋 나는 누구인가요?</h2>
+        <p class="lead">내 구성원을 한 번 골라 두면, 내 목표를 고칠 수 있고 기록할 때 내가 먼저 선택돼요.</p>
+        <div id="whoPick" class="chips"></div>
       </div>
       <h3 class="section-title">이번 주 도장판</h3>
       <div id="memberCards"></div>
@@ -159,7 +170,7 @@
         <textarea id="fbMsg" class="fb-msg" maxlength="500" required placeholder="예: 기록할 때 어제 날짜를 한 번에 고를 수 있으면 좋겠어요"></textarea>
         <p class="fb-count"><span id="fbLen">0</span> / 500자</p>
         <button type="submit" class="primary">의견 보내기</button>
-        <p class="hint">남긴 의견은 이 사이트를 방문한 누구에게나 보여요. 이름·연락처 같은 개인정보는 적지 말아 주세요.</p>
+        <p class="hint">의견은 로그인 후 남길 수 있고, 내가 쓴 글은 직접 지울 수 있어요. 남긴 의견은 방문자 누구에게나 보이니 이름·연락처 같은 개인정보는 적지 말아 주세요.</p>
       </form>
       <div class="card">
         <h2>모두의 의견</h2>
@@ -177,6 +188,40 @@
         <button value="cancel">취소</button>
         <button value="ok" class="primary" id="goalSave">저장</button>
       </div>
+    </form>
+  </dialog>
+
+  <!-- 로그인 -->
+  <dialog id="authDialog">
+    <form id="authForm" method="dialog">
+      <h2>🔐 로그인</h2>
+      <p class="lead">기록·의견을 남기려면 로그인해 주세요. 보기는 로그인 없이도 돼요.</p>
+      <label for="authEmail">이메일</label>
+      <input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+      <label for="authPw">비밀번호</label>
+      <input id="authPw" type="password" autocomplete="current-password" required>
+      <p id="authMsg" class="auth-msg" role="alert"></p>
+      <button type="submit" class="primary">로그인</button>
+      <p class="auth-switch">계정이 없나요? <button type="button" id="goSignup" class="linkbtn">회원가입</button></p>
+      <button type="button" class="ghost auth-close" data-close="authDialog">닫기</button>
+    </form>
+  </dialog>
+
+  <!-- 회원가입 (로그인 창과 따로) -->
+  <dialog id="signupDialog">
+    <form id="signupForm" method="dialog">
+      <h2>📝 회원가입</h2>
+      <p class="lead">처음 오셨나요? 이메일과 비밀번호를 정해 가족 도장판에 함께해요.</p>
+      <label for="suEmail">이메일</label>
+      <input id="suEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+      <label for="suPw">비밀번호 (6자 이상)</label>
+      <input id="suPw" type="password" autocomplete="new-password" minlength="6" required>
+      <label for="suPw2">비밀번호 확인</label>
+      <input id="suPw2" type="password" autocomplete="new-password" minlength="6" required placeholder="한 번 더 입력">
+      <p id="suMsg" class="auth-msg" role="alert"></p>
+      <button type="submit" class="primary">가입하기</button>
+      <p class="auth-switch">이미 계정이 있나요? <button type="button" id="goLogin" class="linkbtn">로그인</button></p>
+      <button type="button" class="ghost auth-close" data-close="signupDialog">닫기</button>
     </form>
   </dialog>
 

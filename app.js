@@ -88,7 +88,7 @@
     var w = weekRange(), st = stats();
     document.getElementById("weekLabel").textContent =
       (w.mon.getMonth() + 1) + "/" + w.mon.getDate() + " ~ " + (w.sun.getMonth() + 1) + "/" + w.sun.getDate() + " 이번 주";
-    renderHome(st); renderLog(); renderRank(st); renderStats();
+    renderAuth(); renderHome(st); renderLog(); renderRank(st); renderStats();
   }
 
   // ---------- 통계 ----------
@@ -206,8 +206,9 @@
       }).join("");
       var seal = s.pct >= 1 ? '<span class="seal" aria-label="모든 목표 달성">참<br>잘했어요</span>' : "";
       return '<article class="card member" style="--c:' + s.m.color + '">' + seal + '<div class="m-head"><span class="m-name"><span class="avatar">' +
-        s.m.emoji + "</span>" + esc(s.m.name) + '</span><span class="m-right"><span class="m-pct">' + Math.round(s.pct * 100) +
-        '<small>%</small></span><button class="small" data-goal="' + s.m.id + '">목표 수정</button></span></div>' + rows + "</article>";
+        s.m.emoji + "</span>" + esc(s.m.name) + (isMine(s.m) ? '<span class="me-tag">나</span>' : "") + '</span><span class="m-right"><span class="m-pct">' + Math.round(s.pct * 100) +
+        '<small>%</small></span>' + (isMine(s.m) ? '<button class="small" data-goal="' + s.m.id + '">목표 수정</button>' : "") +
+        "</span></div>" + rows + "</article>";
     }).join("");
   }
 
@@ -230,7 +231,7 @@
       return '<li><span class="dot" style="background:' + m.color + '"></span><div class="grow"><b>' + esc(m.name) + "</b> " +
         cc.icon + " " + cc.label + " " + fmt(Number(x.r.value)) + cc.unit +
         "<small>" + esc(x.r.date.slice(5).replace("-", "/")) + (x.r.memo ? " · " + esc(x.r.memo) : "") +
-        '</small></div><button class="small" data-del="' + x.i + '">삭제</button></li>';
+        "</small></div>" + (me && x.r.user === me.id ? '<button class="small" data-del="' + x.i + '">삭제</button>' : "") + "</li>";
     }).join("") : '<li class="empty">아직 기록이 없어요</li>';
   }
 
@@ -304,12 +305,13 @@
       CLOUD.deleteRecord(rec.id).then(function () {
         state.records = state.records.filter(function (r) { return r.id !== rec.id; });
         save(); render(); toast("삭제했어요");
-      }, function () { b.disabled = false; offline(); });
+      }, function (err) { b.disabled = false; failed(err); });
     }
   });
 
   document.getElementById("logForm").addEventListener("submit", function (e) {
     e.preventDefault();
+    if (!needLogin("기록은 로그인 후 남길 수 있어요")) return;
     var v = parseFloat(document.getElementById("valueInput").value);
     var date = document.getElementById("dateInput").value;
     if (!(v > 0) || !date) { toast("양과 날짜를 확인해 주세요"); return; }
@@ -324,7 +326,7 @@
         document.getElementById("memoInput").value = "";
         document.getElementById("valueInput").value = 1;
         toast(lastAdd ? "기록했어요. 도장 꾹! 👏" : "기록했어요");
-      }, offline)
+      }, failed)
       .then(function () { btn.disabled = false; });
   });
 
@@ -346,7 +348,7 @@
       document.querySelectorAll("[data-gcat]").forEach(function (i) { g[i.dataset.gcat] = Math.max(0, parseFloat(i.value) || 0); });
       CLOUD.saveGoals(who.id, g).then(function () {
         who.goals = g; save(); render(); toast("목표를 저장했어요");
-      }, offline);
+      }, failed);
     }
   });
 
@@ -365,7 +367,9 @@
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     toast("파일로 내보냈어요");
   });
-  document.getElementById("importBtn").addEventListener("click", function () { document.getElementById("importFile").click(); });
+  document.getElementById("importBtn").addEventListener("click", function () {
+    if (needLogin("가져오기는 로그인 후 할 수 있어요")) document.getElementById("importFile").click();
+  });
   document.getElementById("importFile").addEventListener("change", function (e) {
     var f = e.target.files[0]; if (!f) return;
     var rd = new FileReader();
@@ -387,7 +391,7 @@
         // 이 기기에 있던 기록·파일을 가족 서버로 한 번에 올림 (PRD 2-2-5)
         CLOUD.addRecords(add).then(function (saved) {
           state.records = state.records.concat(saved); save(); render(); toast("기록 " + saved.length + "건을 가족 서버에 올렸어요");
-        }, offline);
+        }, failed);
       } catch (err) { toast("올바른 파일이 아니에요"); }
       e.target.value = "";
     };
@@ -413,7 +417,8 @@
       var d = new Date(f.created_at);
       return '<li><div class="fb-head"><span class="fb-tag">' + esc(f.category) + "</span><b>" + esc(f.nickname || "익명") +
         "</b><small>" + (d.getMonth() + 1) + "/" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) +
-        '</small></div><p class="fb-body">' + esc(f.message) + "</p></li>";
+        "</small>" + (me && f.user_id === me.id ? '<button type="button" class="small" data-fbdel="' + f.id + '">삭제</button>' : "") +
+        '</div><p class="fb-body">' + esc(f.message) + "</p></li>";
     }).join("") : '<li class="empty">첫 의견을 남겨 주세요 ✍️</li>';
   }
   function loadFeedback() {
@@ -430,13 +435,132 @@
     e.preventDefault();
     var msg = document.getElementById("fbMsg").value.trim(), name = document.getElementById("fbName").value.trim();
     if (msg.length < 2) { toast("내용을 두 글자 이상 적어 주세요"); return; }
+    if (!needLogin("의견은 로그인 후 남길 수 있어요")) return;
     var btn = e.target.querySelector("[type=submit]"); btn.disabled = true;
     CLOUD.addFeedback({ nickname: name || "익명", category: fbKind, message: msg }).then(function (row) {
       fbItems = [row].concat(fbItems || []); fbError = false; renderFeedback();
       document.getElementById("fbMsg").value = ""; document.getElementById("fbLen").textContent = "0";
       toast("의견을 남겼어요. 고마워요! 🙏");
-    }, function () { toast("보내지 못했어요. 인터넷 연결을 확인해 주세요"); })
+    }, failed)
       .then(function () { btn.disabled = false; });
+  });
+  document.getElementById("fbList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-fbdel]"); if (!b || !confirm("이 의견을 삭제할까요?")) return;
+    var id = Number(b.dataset.fbdel); b.disabled = true;
+    CLOUD.deleteFeedback(id).then(function () {
+      fbItems = (fbItems || []).filter(function (f) { return f.id !== id; }); renderFeedback(); toast("삭제했어요");
+    }, function (err) { b.disabled = false; failed(err); });
+  });
+
+  // ---------- 로그인 · 회원가입 · 로그아웃 ----------
+  var me = null; // 로그인한 사용자 (없으면 null)
+  function isMine(m) { return !!(me && m && m.user === me.id); }
+  function myMember() { return state.members.filter(isMine)[0] || null; }
+  // 로그인이 필요한 동작 앞에서 호출. 로그인 안 했으면 로그인 창을 띄우고 false
+  function needLogin(why) {
+    if (me) return true;
+    openAuth(why); return false;
+  }
+  // 저장 실패 안내: 우리가 만든 한국어 문구는 그대로, 권한 오류는 로그인 안내, 나머지는 연결 안내
+  function failed(err) {
+    var m = (err && err.message) || "", code = err && err.code;
+    if (code === "42501" || /JWT|permission|row-level/i.test(m)) toast("권한이 없어요. 다시 로그인해 주세요");
+    else if (/[가-힣]/.test(m)) toast(m);
+    else offline();
+  }
+  function renderAuth() {
+    var mine = myMember();
+    document.getElementById("authWho").textContent = me ? (mine ? mine.emoji + " " + mine.name + " · " : "") + me.email : "";
+    document.getElementById("authBtn").textContent = me ? "로그아웃" : "로그인";
+    // "나는 누구?" — 로그인했는데 연결된 구성원이 없을 때, 아직 주인이 없는 구성원 중에서 고름
+    var free = state.members.filter(function (m) { return !m.user; });
+    var card = document.getElementById("whoCard");
+    card.hidden = !(me && !mine && free.length);
+    document.getElementById("whoPick").innerHTML = free.map(function (m) {
+      return '<button type="button" class="chip" data-claim="' + m.id + '">' + m.emoji + " " + esc(m.name) + "</button>";
+    }).join("");
+  }
+  function openAuth(why) {
+    showMsg("authMsg", why);
+    document.getElementById("authDialog").showModal();
+    document.getElementById("authEmail").focus();
+  }
+  document.getElementById("authBtn").addEventListener("click", function () {
+    if (!me) { openAuth(); return; }
+    if (!confirm("로그아웃할까요?")) return;
+    CLOUD.signOut().then(function () { toast("로그아웃했어요"); }, failed);
+  });
+  // 닫기 버튼 / 로그인 ↔ 회원가입 창 전환
+  document.querySelectorAll("[data-close]").forEach(function (b) {
+    b.addEventListener("click", function () { document.getElementById(b.dataset.close).close(); });
+  });
+  function showMsg(id, text, ok) { var m = document.getElementById(id); m.className = "auth-msg" + (ok ? " ok" : ""); m.textContent = text || ""; }
+  function openSignup() {
+    var email = document.getElementById("authEmail").value.trim();
+    document.getElementById("authDialog").close();
+    if (email && !document.getElementById("suEmail").value) document.getElementById("suEmail").value = email; // 적어 둔 이메일은 넘겨줌
+    showMsg("suMsg", "");
+    document.getElementById("signupDialog").showModal();
+    document.getElementById("suEmail").focus();
+  }
+  document.getElementById("goSignup").addEventListener("click", openSignup);
+  document.getElementById("goLogin").addEventListener("click", function () {
+    var email = document.getElementById("suEmail").value.trim();
+    document.getElementById("signupDialog").close();
+    if (email) document.getElementById("authEmail").value = email;
+    openAuth();
+  });
+  // 버튼 잠그고 처리 → 끝나면 풀기
+  function busy(form, on) { form.querySelectorAll("button").forEach(function (b) { b.disabled = on; }); }
+
+  // 로그인
+  document.getElementById("authForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target, email = document.getElementById("authEmail").value.trim(), pw = document.getElementById("authPw").value;
+    if (!email || !pw) { showMsg("authMsg", "이메일과 비밀번호를 적어 주세요"); return; }
+    busy(form, true); showMsg("authMsg", "로그인하는 중…", true);
+    CLOUD.signIn(email, pw).then(function () {
+      document.getElementById("authPw").value = "";
+      document.getElementById("authDialog").close();
+      toast("로그인했어요");
+    }, function (err) { showMsg("authMsg", err.message); })
+      .then(function () { busy(form, false); });
+  });
+
+  // 회원가입
+  document.getElementById("signupForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target, email = document.getElementById("suEmail").value.trim();
+    var pw = document.getElementById("suPw").value, pw2 = document.getElementById("suPw2").value;
+    if (!email) { showMsg("suMsg", "이메일을 적어 주세요"); return; }
+    if (pw.length < 6) { showMsg("suMsg", "비밀번호는 6자 이상으로 정해 주세요"); return; }
+    if (pw !== pw2) { showMsg("suMsg", "비밀번호 확인이 달라요. 다시 입력해 주세요"); return; }
+    busy(form, true); showMsg("suMsg", "가입하는 중…", true);
+    CLOUD.signUp(email, pw).then(function (r) {
+      document.getElementById("suPw").value = ""; document.getElementById("suPw2").value = "";
+      if (r.needConfirm) {
+        showMsg("suMsg", "📧 " + email + " 로 확인 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝나요. 그다음 로그인해 주세요.", true);
+        return;
+      }
+      document.getElementById("signupDialog").close();
+      toast("가입했어요. 환영해요! 🎉");
+    }, function (err) { showMsg("suMsg", err.message); })
+      .then(function () { busy(form, false); });
+  });
+  document.getElementById("whoPick").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-claim]"); if (!b || !me) return;
+    var m = member(b.dataset.claim);
+    if (!confirm(m.emoji + " " + m.name + "(으)로 연결할까요? 한 번 연결하면 앱에서는 바꿀 수 없어요.")) return;
+    CLOUD.claimMember(m.id, me.id).then(function () {
+      m.user = me.id; pick.member = m.id; save(); render(); toast(m.name + "(으)로 연결했어요");
+    }, function (err) { failed(err); sync(true); });
+  });
+  // 로그인 상태가 바뀌면(시작 시 포함) 화면을 다시 그림
+  CLOUD.onAuth(function (user) {
+    me = user;
+    var mine = myMember(); if (mine) pick.member = mine.id;
+    render();
+    if (fbItems) loadFeedback();
   });
 
   // ---------- 홈 화면에 추가 (PRD 1-2) ----------
